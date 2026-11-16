@@ -10,8 +10,8 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
       where: { userId },
     });
 
-    const totalRevenue = sales.reduce((acc, s) => acc + Number(s.revenue), 0);
-    const totalCost = sales.reduce((acc, s) => acc + Number(s.cost), 0);
+    const totalRevenue = sales.reduce((acc: number, s) => acc + Number(s.revenue), 0);
+    const totalCost = sales.reduce((acc: number, s) => acc + Number(s.cost), 0);
     const totalProfit = totalRevenue - totalCost;
     const totalSales = sales.length;
     const roas = totalCost > 0 ? totalRevenue / totalCost : 0;

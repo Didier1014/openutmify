@@ -12,7 +12,7 @@ export const getUtmReport = async (req: Request, res: Response): Promise<void> =
 
     const grouped: Record<string, { vendas: number; cpa: number; gastos: number; faturamento: number; lucro: number }> = {};
 
-    sales.forEach((s) => {
+    sales.forEach((s: any) => {
       const key = s[groupBy as keyof typeof s] as string || 'Não definido';
       if (!grouped[key]) grouped[key] = { vendas: 0, cpa: 0, gastos: 0, faturamento: 0, lucro: 0 };
       grouped[key].vendas += 1;

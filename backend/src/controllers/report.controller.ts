@@ -12,7 +12,7 @@ export const getDailyReport = async (req: Request, res: Response): Promise<void>
 
     const byDay: Record<string, { vendas: number; cpa: number; gastos: number; despesas: number; faturamento: number; lucro: number; roas: number }> = {};
 
-    sales.forEach((s) => {
+    sales.forEach((s: any) => {
       const day = s.createdAt.toISOString().split('T')[0];
       if (!byDay[day]) byDay[day] = { vendas: 0, cpa: 0, gastos: 0, despesas: 0, faturamento: 0, lucro: 0, roas: 0 };
       byDay[day].vendas += 1;

@@ -77,7 +77,10 @@ export const getFunnel = async (req: Request, res: Response): Promise<void> => {
     });
 
     res.json({
-      funil: funnel.map((f) => ({ evento: f.eventName, quantidade: f._count.eventName })),
+      funil: funnel.map((f: { eventName: string; _count: { eventName: number } }) => ({
+        evento: f.eventName,
+        quantidade: f._count.eventName,
+      })),
       totalRecebidos: totalReceived,
       totalEnviados: totalSent,
     });
