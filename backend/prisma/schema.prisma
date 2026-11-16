@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  role              String    @default("USER")
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  adAccounts        AdAccount[]
+  campaigns         Campaign[]
+  subscriptions     Subscription[]
+  events            PixelEvent[]
+  sales             Sale[]
+  rules             Rule[]
+  notificationSettings NotificationSetting[]
+
+  @@index([email])
+}
+
+model AdAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  platform      String   // META | GOOGLE | KWAI | TIKTOK | TABOOLA
+  accountId     String   // ID da conta na rede
+  accountName   String
+  accessToken   String   // Criptografado
+  refreshToken  String?
+  tokenExpiresAt DateTime?
+  isConnected   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns     Campaign[]
+
+  @@index([userId])
+  @@index([platform])
+}
+
+model Campaign {
+  id            String   @id @default(uuid())
+  adAccountId   String
+  name          String
+  status        String   // ACTIVE | PAUSED | DELETED
+  budget        Decimal? // Orçamento diário/total
+  cpaDesired    Decimal?
+  platform      String   // META | GOOGLE | KWAI | TIKTOK | TABOOLA
+  externalId    String?  // ID da campanha na rede
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  adAccount     AdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+  adSets        AdSet[]
+  sales         Sale[]
+  metrics       CampaignMetric[]
+
+  @@index([adAccountId])
+  @@index([platform])
+  @@index([status])
+}
+
+model AdSet {
+  id            String   @id @default(uuid())
+  campaignId    String
+  name          String
+  status        String
+  budget        Decimal?
+  externalId    String?
+
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ads           Ad[]
+
+  @@index([campaignId])
+}
+
+model Ad {
+  id            String   @id @default(uuid())
+  adSetId       String
+  name          String
+  status        String
+  externalId    String?
+
+  adSet         AdSet @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+
+  @@index([adSetId])
+}
+
+model PixelEvent {
+  id            String   @id @default(uuid())
+  userId        String
+  eventName     String   // PageView, ViewContent, AddToCart, InitiateCheckout, Purchase
+  platform      String   // META | GOOGLE | KWAI | TIKTOK | TABOOLA
+  pixelId       String
+  eventId       String   // ID único do evento (dedupe)
+  data          Json     // Payload completo do evento
+  source        String   // CLIENT | S2S
+  status        String   // RECEIVED | SAVED | SENT | FAILED
+  hasAdClick    Boolean  @default(false)
+  clickId       String?  // fbc, gclid, ttclid, etc.
+  createdAt     DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([platform])
+  @@index([createdAt])
+  @@index([eventName])
+}
+
+model Sale {
+  id            String   @id @default(uuid())
+  userId        String
+  campaignId    String?  // Atribuição por UTM / click ID
+  adSetId       String?
+  adId          String?
+  product       String
+  productId     String?
+  orderId       String?  // ID do pedido
+  paymentMethod String   // PIX | CARTAO | BOLETO | OUTROS
+  saleType      String   // APROVADA | PENDENTE | REEMBOLSADA | CHARGEBACK
+  amount        Decimal  // Valor da venda
+  revenue       Decimal  // Receita líquida
+  cost          Decimal  // Gastos com anúncios atribuídos
+  profit        Decimal  // Lucro
+  roas          Decimal  // Return on ad spend
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  utmContent    String?
+  utmTerm       String?
+  clickId       String?
+  createdAt     DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign      Campaign? @relation(fields: [campaignId], references: [id])
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([saleType])
+  @@index([createdAt])
+}
+
+model CampaignMetric {
+  id            String   @id @default(uuid())
+  campaignId    String
+  date          DateTime
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  spend         Decimal  @default(0)
+  conversions   Int      @default(0)
+  cpa           Decimal  @default(0)
+  ctr           Decimal  @default(0)
+  cpc           Decimal  @default(0)
+  cpm           Decimal  @default(0)
+  roas          Decimal  @default(0)
+  createdAt     DateTime @default(now())
+
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([date])
+}
+
+model Subscription {
+  id            String   @id @default(uuid())
+  userId        String
+  plan          String   // STARTER | SCALE | ENTERPRISE
+  status        String   // ACTIVE | CANCELED | PAST_DUE
+  salesLimit    Int      // Limite de vendas/mês
+  price         Decimal
+  currency      String   @default("BRL")
+  startedAt     DateTime
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Rule {
+  id            String   @id @default(uuid())
+  userId        String
+  platform      String   // META | GOOGLE
+  name          String
+  status        String   // ACTIVE | INACTIVE
+  conditions    Json     // Condições da regra
+  actions       Json     // Ações a executar
+  frequency     String   // Diaria | Semanal
+  lastRun       DateTime?
+  createdAt     DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([platform])
+}
+
+model NotificationSetting {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String   // SALE_PENDING | SALE_APPROVED | REPORT
+  enabled       Boolean  @default(false)
+  value         String   // TOTAL | PRODUCT | HIDE
+  time          String?  // 08:00 | 12:00 | 18:00 | 23:00
+  profitStatus  String   // RESUMO | DETALHADO
+  createdAt     DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+}

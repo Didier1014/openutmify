@@ -1,0 +1,24 @@
+{
+  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.svelte", "vite.config.js"],
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "$lib": ["src/lib"],
+      "$components": ["src/lib/components"],
+      "$stores": ["src/lib/stores"],
+      "$utils": ["src/lib/utils"]
+    }
+  }
+}

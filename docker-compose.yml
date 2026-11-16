@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: utmify-db
+    environment:
+      POSTGRES_USER: utmify
+      POSTGRES_PASSWORD: utmify123
+      POSTGRES_DB: utmify
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U utmify -d utmify"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: utmify-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://utmify:utmify123@postgres:5432/utmify?schema=public
+      JWT_SECRET: dev-secret-change-in-production
+      PORT: 3333
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
+
+  frontend:
+    build: ./frontend
+    container_name: utmify-web
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:3333
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+
+volumes:
+  postgres_data:
